@@ -1,19 +1,98 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const http_1 = __importDefault(require("http"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const formidable_1 = __importDefault(require("formidable"));
-const server = http_1.default.createServer((req, res) => {
-    if (req.url && req.method) {
-        if (req.url === '/browse') {
-            // Serve file browser
-            const fileList = fs_1.default.readdirSync('./public');
-            const fileLinks = fileList.map((file) => `<li><a href="/download?filename=${file}">${file}</a></li>`);
-            const fileBrowserHtml = `
+const express_1 = __importDefault(require("express"));
+const fs = __importStar(require("fs"));
+const formidable = __importStar(require("formidable"));
+const path = __importStar(require("path"));
+const app = (0, express_1.default)();
+// Set up middleware
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
+// Set up file upload with Formidable
+app.post('/upload', (req, res) => {
+    // NOTE: path is not there
+    const form = new formidable.IncomingForm({
+        multiples: true,
+        uploadDir: path.join(__dirname, 'uploads'),
+    });
+    form.parse(req, (err, fields, files) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error uploading files');
+            return;
+        }
+        const uploadedFiles = Array.isArray(files.filepond)
+            ? files.filepond
+            : [files.filepond];
+        const uploadErrors = [];
+        uploadedFiles.forEach((file) => {
+            const oldPath = file.filepath;
+            // if we have a file name we use the filename else we have a problem
+            const filename = file.originalFilename
+                ? file.originalFilename
+                : 'nofilename';
+            const newPath = path.join(__dirname, 'public', filename);
+            fs.rename(oldPath, newPath, (err) => {
+                if (err) {
+                    console.error(err);
+                    // NOTE: file is not there;
+                    // uploadErrors.push(file.);
+                    return;
+                }
+            });
+        });
+        if (uploadErrors.length > 0) {
+            res.status(500).send(`Error uploading files: ${uploadErrors.join(', ')}`);
+        }
+        else {
+            res.send('Files uploaded successfully');
+        }
+    });
+});
+// Serve the upload page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'upload.html'));
+});
+app.get('/download', (req, res) => {
+    // Serve file download
+    const fileName = req.url.split('=')[1];
+    const filePath = path.join(__dirname, 'public', fileName);
+    const fileStream = fs.createReadStream(filePath);
+    res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
+    res.setHeader('Content-type', 'application/octet-stream');
+    fileStream.pipe(res);
+});
+app.get('/browse', (_, res) => {
+    // Serve file browser
+    const fileList = fs.readdirSync('./public');
+    const fileLinks = fileList.map((file) => `<li><a href="/download?filename=${file}">${file}</a></li>`);
+    const fileBrowserHtml = `
       <html>
         <body>
           <h1>Select a file to download:</h1>
@@ -23,113 +102,20 @@ const server = http_1.default.createServer((req, res) => {
         </body>
       </html>
     `;
-            res.setHeader('Content-type', 'text/html');
-            res.end(fileBrowserHtml);
-        }
-        else if (req.url === '/upload') {
-            // Serve file upload form
-            const uploadFormHtml = `
-<h1>Upload a file</h1>
-<input type="file" name="file" />
-<br>
-<script>
-    function uploadFile() {
-        // upload a file
-        let clientServerOptions = {
-                uri: 'http://localhost:3000/upload',
-                body: JSON.stringify(file: 'file'),
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }
-            request(clientServerOptions, function (error, response) {
-                console.log(error,response.body);
-                return;
-            });
-    }
-</script>
-<button type="submit" onclick=uploadFile()>Upload</button>
-<h2> Hope that works</h2>
-`;
-            res.setHeader('Content-type', 'text/html');
-            res.end(uploadFormHtml);
-        }
-        else if (req.url === '/upload' &&
-            req.method.toLowerCase() === 'post') {
-            // Handle file upload
-            const form = (0, formidable_1.default)({
-                multiples: false,
-                uploadDir: path_1.default.join(__dirname, 'public'),
-            });
-            form.parse(req, (err, _, files) => {
-                if (err) {
-                    console.error(err);
-                    res.statusCode = 500;
-                    res.end('Error uploading file');
-                    return;
-                }
-                const uploadedFiles = Array.isArray(files.file)
-                    ? files.file
-                    : [files.file];
-                const uploadErrors = [];
-                uploadedFiles.forEach((file) => {
-                    const oldPath = file.filepath;
-                    if (file.originalFilename) {
-                        let fileName = file.originalFilename;
-                        const newPath = path_1.default.join(__dirname, 'public', fileName);
-                        fs_1.default.rename(oldPath, newPath, (err) => {
-                            if (err) {
-                                console.error(err);
-                                uploadErrors.push(fileName);
-                                return;
-                            }
-                        });
-                    }
-                });
-                res.statusCode = 302;
-                res.setHeader('Location', '/browse');
-                res.end();
-            });
-        }
-        else if (req.url.startsWith('/download')) {
-            // Serve file download
-            const fileName = req.url.split('=')[1];
-            const filePath = path_1.default.join(__dirname, 'public', fileName);
-            const fileStream = fs_1.default.createReadStream(filePath);
-            res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
-            res.setHeader('Content-type', 'application/octet-stream');
-            fileStream.pipe(res);
-        }
-        else if (req.url.toString() === '/') {
-            let homeHtml = `
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>File Server</title>
-</head>
-<body>
-    <h1>File Server</h1>
-    <h2>Click to browse files</h2>
-    <button onclick="window.location.href='/browse'">Browse Files</button>
-</body>
-</html>
-            `;
-            res.setHeader('Content-type', 'text/html');
-            res.end(homeHtml);
-        }
-        else {
-            // Serve 404 Not Found
-            res.statusCode = 404;
-            res.end('404 Not Found');
-        }
-    }
-    else {
-        console.log('No URL');
-    }
+    res.setHeader('Content-type', 'text/html');
+    res.end(fileBrowserHtml);
 });
-server.listen(3000, () => {
-    console.log('Server is running on port 3000');
+// TODO: implement that
+app.get('/filepond', (req, res) => {
+    // make a new filepond instance
+    // upload the file to the server
+    // the upload url should be /upload and should be a post request
+    // there should be a submit button
+    res.sendFile(path.join(__dirname, 'filepond.html'));
+});
+// Set up static file serving
+app.use(express_1.default.static('public'));
+// Start the server
+app.listen(3000, () => {
+    console.log('Server listening on port 3000');
 });

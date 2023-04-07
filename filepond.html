@@ -1,0 +1,29 @@
+<!DOCTYPE>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta charset="utf-8" />
+    <title id="title">Upload</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta lang="en" />
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet" />
+    <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+</head>
+
+<body>
+    <h1>FILEPOND</h1>
+    Put a file here and it gets uploaded. Yeahhhh!!!
+    <br />
+    <input type="file" name="filepond"/>
+</body>
+<script>
+    const inputElement = document.querySelector('input[type="file"]');
+    const pond = FilePond.create(inputElement);
+    pond.setOptions({
+        server: '/upload',
+    });
+</script>
+
+</html>
