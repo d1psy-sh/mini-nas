@@ -12,9 +12,9 @@ By using a NAS device, users can easily share files, back up important data, and
 
 I want to learn a bit of TypeScript aka JavaScript and this was a nice little project to start with.
 It includes:
-    - Promises
-    - Libraries
-    - And a simple webserver
+- Promises
+- Libraries
+- And a simple webserver
 
 ## NodeJS Project Structure
 
