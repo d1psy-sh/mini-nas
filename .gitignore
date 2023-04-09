@@ -12,6 +12,7 @@ pids
 logs
 results
 tmp
+db
 
 # Build
 public/css/main.css
@@ -39,3 +40,5 @@ dist/**/*
 
 # ignore yarn.lock
 yarn.lock
+
+

@@ -2,7 +2,6 @@ import express, { Express, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as formidable from 'formidable';
 import * as path from 'path';
-import * as filepond from 'filepond';
 const app: Express = express();
 
 // Set up middleware
@@ -14,7 +13,7 @@ app.post('/upload', (req: Request, res: Response) => {
     // NOTE: this is not working right debug here
     const form = new formidable.IncomingForm({
         multiples: true,
-        uploadDir: path.join(__dirname, 'uploads'),
+        uploadDir: path.join(__dirname, 'db'),
     });
 
     form.parse(req, (err: Error, fields: formidable.Fields, files: any) => {
@@ -35,7 +34,7 @@ app.post('/upload', (req: Request, res: Response) => {
             const filename = file.originalFilename
                 ? file.originalFilename
                 : 'nofilename';
-            const newPath = path.join(__dirname, 'public', filename);
+            const newPath = path.join(__dirname, 'db', filename);
 
             fs.rename(oldPath, newPath, (err) => {
                 if (err) {
@@ -65,7 +64,7 @@ app.get('/', (req: Request, res: Response) => {
 app.get('/download', (req: Request, res: Response) => {
     // Serve file download
     const fileName = req.url.split('=')[1];
-    const filePath = path.join(__dirname, 'public', fileName);
+    const filePath = path.join(__dirname, 'db', fileName);
     const fileStream = fs.createReadStream(filePath);
     res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
     res.setHeader('Content-type', 'application/octet-stream');
@@ -74,7 +73,7 @@ app.get('/download', (req: Request, res: Response) => {
 
 app.get('/browse', (_, res: Response) => {
     // Serve file browser
-    const fileList: string[] = fs.readdirSync('./public');
+    const fileList: string[] = fs.readdirSync('./db');
     const fileLinks: string[] = fileList.map(
         (file) => `<li><a href="/download?filename=${file}">${file}</a></li>`
     );

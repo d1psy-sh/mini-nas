@@ -15,3 +15,7 @@ It includes:
     - Promises
     - Libraries
     - And a simple webserver
+
+## NodeJS Project Structure
+
+See the [link](https://blog.logrocket.com/the-perfect-architecture-flow-for-your-next-node-js-project/) for a nice blog on NodeJS project structure.

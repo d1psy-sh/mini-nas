@@ -36,10 +36,10 @@ app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // Set up file upload with Formidable
 app.post('/upload', (req, res) => {
-    // NOTE: path is not there
+    // NOTE: this is not working right debug here
     const form = new formidable.IncomingForm({
         multiples: true,
-        uploadDir: path.join(__dirname, 'uploads'),
+        uploadDir: path.join(__dirname, 'db'),
     });
     form.parse(req, (err, fields, files) => {
         if (err) {
@@ -57,7 +57,7 @@ app.post('/upload', (req, res) => {
             const filename = file.originalFilename
                 ? file.originalFilename
                 : 'nofilename';
-            const newPath = path.join(__dirname, 'public', filename);
+            const newPath = path.join(__dirname, 'db', filename);
             fs.rename(oldPath, newPath, (err) => {
                 if (err) {
                     console.error(err);
@@ -82,7 +82,7 @@ app.get('/', (req, res) => {
 app.get('/download', (req, res) => {
     // Serve file download
     const fileName = req.url.split('=')[1];
-    const filePath = path.join(__dirname, 'public', fileName);
+    const filePath = path.join(__dirname, 'db', fileName);
     const fileStream = fs.createReadStream(filePath);
     res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
     res.setHeader('Content-type', 'application/octet-stream');
@@ -90,7 +90,7 @@ app.get('/download', (req, res) => {
 });
 app.get('/browse', (_, res) => {
     // Serve file browser
-    const fileList = fs.readdirSync('./public');
+    const fileList = fs.readdirSync('./db');
     const fileLinks = fileList.map((file) => `<li><a href="/download?filename=${file}">${file}</a></li>`);
     const fileBrowserHtml = `
       <html>
